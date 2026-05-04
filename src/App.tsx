@@ -33,10 +33,22 @@ export default function App() {
     })();
   }, []);
 
-  // 파일 목록 로드
+  // 파일 목록 로드 (저장된 순서 적용)
   const loadFiles = useCallback(async () => {
     if (!memoDir) return;
     const list = await api.listMdFiles(memoDir);
+    const savedOrder = (await api.storeGet("memoOrder")) as string[] | undefined;
+    if (savedOrder && savedOrder.length > 0) {
+      const orderMap = new Map(savedOrder.map((name, i) => [name, i]));
+      list.sort((a, b) => {
+        const ai = orderMap.get(a.name);
+        const bi = orderMap.get(b.name);
+        if (ai !== undefined && bi !== undefined) return ai - bi;
+        if (ai !== undefined) return -1;
+        if (bi !== undefined) return 1;
+        return b.modifiedAt - a.modifiedAt;
+      });
+    }
     setFiles(list);
   }, [memoDir]);
 
@@ -110,6 +122,14 @@ export default function App() {
     await loadFiles();
   };
 
+  const handleReorder = (oldIndex: number, newIndex: number) => {
+    const reordered = [...files];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    setFiles(reordered);
+    api.storeSet("memoOrder", reordered.map((f) => f.name));
+  };
+
   const handleEditorChange = (md: string) => {
     triggerSave(md);
   };
@@ -151,7 +171,8 @@ export default function App() {
       />
       {view === "grid" && (
         <CardGrid files={files} onSelect={handleSelectMemo}
-          onDelete={handleDeleteRequest} onRename={handleRename} />
+          onDelete={handleDeleteRequest} onRename={handleRename}
+          onReorder={handleReorder} />
       )}
       {view === "editor" && activeMemo && (
         <EditorView memo={activeMemo} onChange={handleEditorChange}

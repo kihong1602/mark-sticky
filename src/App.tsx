@@ -3,6 +3,7 @@ import { TitleBar } from "./components/TitleBar";
 import { CardGrid } from "./components/CardGrid";
 import { EditorView } from "./components/EditorView";
 import { DirectoryPicker } from "./components/DirectoryPicker";
+import { PromptModal, ConfirmModal } from "./components/Modal";
 import { useAutoSave } from "./hooks/useAutoSave";
 import type { MemoFile, ViewMode } from "./types";
 
@@ -58,11 +59,20 @@ export default function App() {
     setMemoDir(path);
   };
 
-  const handleNewMemo = async () => {
-    const name = prompt("새 메모 파일 이름:");
-    if (!name?.trim() || !memoDir) return;
-    const result = await api.createFile(memoDir, name.trim());
-    if ("error" in result) { alert(result.error); return; }
+  const [newMemoOpen, setNewMemoOpen] = useState(false);
+  const [newMemoError, setNewMemoError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MemoFile | null>(null);
+
+  const handleNewMemo = () => {
+    setNewMemoError(null);
+    setNewMemoOpen(true);
+  };
+
+  const handleNewMemoConfirm = async (name: string) => {
+    if (!memoDir) return;
+    const result = await api.createFile(memoDir, name);
+    if ("error" in result) { setNewMemoError(result.error); return; }
+    setNewMemoOpen(false);
     setActiveMemo(result);
     setView("editor");
     await loadFiles();
@@ -79,11 +89,16 @@ export default function App() {
     await loadFiles();
   };
 
-  const handleDelete = async (memo: MemoFile) => {
-    if (!confirm(`"${memo.name}"을 삭제하시겠습니까?`)) return;
-    await api.deleteFile(memo.path);
-    if (activeMemo?.path === memo.path) handleBack();
+  const handleDeleteRequest = (memo: MemoFile) => {
+    setDeleteTarget(memo);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    await api.deleteFile(deleteTarget.path);
+    if (activeMemo?.path === deleteTarget.path) handleBack();
     else await loadFiles();
+    setDeleteTarget(null);
   };
 
   const handleRename = async (memo: MemoFile, newName: string) => {
@@ -130,18 +145,33 @@ export default function App() {
       <TitleBar
         onNewMemo={handleNewMemo} onSettings={handleSettings}
         onBack={view === "editor" ? handleBack : undefined}
-        onDelete={view === "editor" && activeMemo ? () => handleDelete(activeMemo) : undefined}
+        onDelete={view === "editor" && activeMemo ? () => handleDeleteRequest(activeMemo) : undefined}
         onRename={view === "editor" ? () => setRenameActive(true) : undefined}
         savedStatus={savedStatus} showBackButton={view === "editor"}
       />
       {view === "grid" && (
         <CardGrid files={files} onSelect={handleSelectMemo}
-          onDelete={handleDelete} onRename={handleRename} />
+          onDelete={handleDeleteRequest} onRename={handleRename} />
       )}
       {view === "editor" && activeMemo && (
         <EditorView memo={activeMemo} onChange={handleEditorChange}
           onRename={(newName) => handleRename(activeMemo, newName)} />
       )}
+      <PromptModal
+        open={newMemoOpen}
+        title="새 메모 생성"
+        placeholder="파일 이름"
+        onConfirm={handleNewMemoConfirm}
+        onCancel={() => setNewMemoOpen(false)}
+        error={newMemoError}
+      />
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="메모 삭제"
+        message={`"${deleteTarget?.name}"을 삭제하시겠습니까?`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

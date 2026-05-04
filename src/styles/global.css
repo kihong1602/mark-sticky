@@ -97,7 +97,7 @@ input { font-family: inherit; font-size: inherit; }
   border-radius: var(--radius-md); padding: 12px; cursor: pointer;
   transition: box-shadow 0.2s, transform 0.1s;
   box-shadow: var(--shadow-card);
-  display: flex; flex-direction: column; gap: 8px; min-height: 120px;
+  display: flex; flex-direction: column; gap: 8px; min-height: 240px;
 }
 .memo-card:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
 .memo-card-header {
@@ -108,7 +108,7 @@ input { font-family: inherit; font-size: inherit; }
 .memo-card-preview pre {
   font-family: var(--font-sans); font-size: 12px; color: var(--text-secondary);
   white-space: pre-wrap; word-break: break-word; line-height: 1.4;
-  max-height: 60px; overflow: hidden;
+  max-height: 160px; overflow: hidden;
 }
 .memo-card-actions {
   display: flex; gap: 4px; justify-content: flex-end;

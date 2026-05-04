@@ -11,7 +11,7 @@ interface MemoCardProps {
 
 export const MemoCard: FC<MemoCardProps> = ({ memo, onClick, onDelete, onRename }) => {
   const [renaming, setRenaming] = useState(false);
-  const preview = memo.content.split("\n").filter((l) => l.trim()).slice(0, 4).join("\n");
+  const preview = memo.content.split("\n").slice(0, 12).join("\n");
 
   return (
     <div className="memo-card" onClick={renaming ? undefined : onClick}>
